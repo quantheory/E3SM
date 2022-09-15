@@ -52,6 +52,8 @@ public :: &
      size_dist_param_basic, &
      avg_diameter, &
      rising_factorial, &
+     calc_ab, &
+     var_coef, &
      ice_deposition_sublimation, &
      kk2000_liq_autoconversion, &
      ice_autoconversion, &
@@ -1422,8 +1424,6 @@ return
 
 end subroutine get_dcst_sc
 !!== KZ_DCS
-
-
 
 !========================================================================
 !UTILITIES

@@ -2319,6 +2319,24 @@ Switch to turn on temperature dependent DCS.
 Default: .false.
 </entry>
 
+<entry id="rain_evap_use_boss" type="logical" category="microphysics"
+       group="micro_mg_nl" valid_values="">
+Use BOSS parameterizations for evaporation of rain.
+Default: FALSE
+</entry>
+
+<entry id="liq_collisional_use_boss" type="logical" category="microphysics"
+       group="micro_mg_nl" valid_values="">
+Use BOSS parameterizations for processes involving liquid-liquid collisions.
+Default: FALSE
+</entry>
+
+<entry id="liq_fall_speed_use_boss" type="logical" category="microphysics"
+       group="micro_mg_nl" valid_values="">
+Use BOSS parameterizations for calculating fall speed of liquid drops.
+Default: FALSE
+</entry>
+
 <entry id="micro_mg_accre_enhan_fac" type="real" category="microphysics"
        group="phys_ctl_nl" valid_values="" >
 Accretion enhancement factor from namelist
@@ -2361,7 +2379,182 @@ Temporary variable for a bug fix. Introduced to maintain BFB, must be REMOVED la
 Default: FALSE
 </entry>
 
+<!-- micro_boss -->
 
+<entry id="boss_rain_evap_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS rain evaporation parameter. This is "a" in the formula:
+    dM3/dt = a gamma M0 (M3/M0)^b
+which determines the effect of evaporation on rain mass.
+</entry>
+
+<entry id="boss_rain_evap_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS rain evaporation parameter. This is "b" in the formula:
+    dM3/dt = a gamma M0 (M3/M0)^b
+which determines the effect of evaporation on rain mass.
+</entry>
+
+<entry id="boss_cloud_selfcol_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS cloud self-collection parameter. This is "a" in the formula:
+    dM0/dt = a M0^2 (M3/M0)^b
+which determines the effect of cloud self-collection on rain number.
+</entry>
+
+<entry id="boss_cloud_selfcol_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS cloud self-collection parameter. This is "b" in the formula:
+    dM0/dt = a M0^2 (M3/M0)^b
+which determines the effect of cloud self-collection on rain number.
+</entry>
+
+<entry id="boss_auto_cloud_size" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion cloud size parameter (inversely proportional to the mean
+mass of cloud particles consumed).
+This parameter is used as the ratio of the cloud M0 tendency to the M3 tendency.
+</entry>
+
+<entry id="boss_auto_rain_size" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion rain size parameter (inversely proportional to the mean
+mass of rain particles produced).
+This parameter is used as the ratio of the rain M0 tendency to the M3 tendency.
+</entry>
+
+<entry id="boss_auto_non_rain_term_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion parameter. This is "a" in the formula:
+    dM3/dt = a Mc0^2 (Mc3/Mc0)^b
+which is the non-rain-dependent term in BOSS's autoconversion parameterization.
+</entry>
+
+<entry id="boss_auto_non_rain_term_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion parameter. This is "b" in the formula:
+    dM3/dt = a Mc0^2 (Mc3/Mc0)^b
+which is the non-rain-dependent term in BOSS's autoconversion parameterization.
+</entry>
+
+<entry id="boss_auto_rain_term_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion parameter. This is "a" in the formula:
+    dM3/dt = a Mc0^2 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain (Mr0/Mc0)^b_num
+which is the rain-dependent term in BOSS's autoconversion parameterization.
+</entry>
+
+<entry id="boss_auto_rain_term_b_cloud" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion parameter. This is "b_cloud" in the formula:
+    dM3/dt = a Mc0^2 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain (Mr0/Mc0)^b_num
+which is the rain-dependent term in BOSS's autoconversion parameterization.
+</entry>
+
+<entry id="boss_auto_rain_term_b_rain" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion parameter. This is "b_rain" in the formula:
+    dM3/dt = a Mc0^2 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain (Mr0/Mc0)^b_num
+which is the rain-dependent term in BOSS's autoconversion parameterization.
+</entry>
+
+<entry id="boss_auto_rain_term_b_num" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS autoconversion parameter. This is "b_num" in the formula:
+    dM3/dt = a Mc0^2 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain (Mr0/Mc0)^b_num
+which is the rain-dependent term in BOSS's autoconversion parameterization.
+</entry>
+
+<entry id="boss_accr_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS accretion parameter. This is "a" in the formula:
+    dM3/dt = a Mc0 Mr0 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain
+which determines the effect of accretion on rain mass.
+</entry>
+
+<entry id="boss_accr_b_cloud" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS accretion parameter. This is "b_cloud" in the formula:
+    dM3/dt = a Mc0 Mr0 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain
+which determines the effect of accretion on rain mass.
+</entry>
+
+<entry id="boss_accr_b_rain" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS accretion parameter. This is "b_rain" in the formula:
+    dM3/dt = a Mc0 Mr0 (Mc3/Mc0)^b_cloud (Mr3/Mr0)^b_rain
+which determines the effect of accretion on rain mass.
+</entry>
+
+<entry id="boss_rain_selfcol_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS rain self-collection parameter. This is "a" in the formula:
+    dM0/dt = a M0^2 (M3/M0)^b
+which determines the effect of rain self-collection on rain number.
+</entry>
+
+<entry id="boss_rain_selfcol_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS rain self-collection parameter. This is "b" in the formula:
+    dM0/dt = a M0^2 (M3/M0)^b
+which determines the effect of rain self-collection on rain number.
+</entry>
+
+<entry id="boss_cloud_fall0_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "a" in the formula:
+    v = a (M3/M0)^b
+which calculates the number-weighted fall speed of cloud at sea level.
+</entry>
+
+<entry id="boss_cloud_fall0_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "b" in the formula:
+    v = a (M3/M0)^b
+which calculates the number-weighted fall speed of cloud at sea level.
+</entry>
+
+<entry id="boss_cloud_fall3_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "a" in the formula:
+    v = a (M3/M0)^b
+which calculates the mass-weighted fall speed of cloud at sea level.
+</entry>
+
+<entry id="boss_cloud_fall3_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "b" in the formula:
+    v = a (M3/M0)^b
+which calculates the mass-weighted fall speed of cloud at sea level.
+</entry>
+
+<entry id="boss_rain_fall0_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "a" in the formula:
+    v = a (M3/M0)^b
+which calculates the number-weighted fall speed of rain at sea level.
+</entry>
+
+<entry id="boss_rain_fall0_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "b" in the formula:
+    v = a (M3/M0)^b
+which calculates the number-weighted fall speed of rain at sea level.
+</entry>
+
+<entry id="boss_rain_fall3_a" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "a" in the formula:
+    v = a (M3/M0)^b
+which calculates the mass-weighted fall speed of rain at sea level.
+</entry>
+
+<entry id="boss_rain_fall3_b" type="real" category="microphysics"
+       group="boss_nl" valid_values="">
+BOSS fall speed parameter. This is "b" in the formula:
+    v = a (M3/M0)^b
+which calculates the mass-weighted fall speed of rain at sea level.
+</entry>
 
 
 

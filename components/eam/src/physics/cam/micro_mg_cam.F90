@@ -136,6 +136,46 @@ logical, public :: do_nicons ! Set NI to a constant
 
 integer :: num_steps ! Number of MG substeps
 
+logical :: use_boss = .false.
+
+logical :: rain_evap_use_boss = .false.
+logical :: liq_collisional_use_boss = .false.
+logical :: liq_fall_speed_use_boss = .false.
+
+!-----BOSS parameters-----!
+! BOSS rain evaporation parameters.
+real(r8) :: boss_rain_evap_a = 0._r8
+real(r8) :: boss_rain_evap_b = 0._r8
+! BOSS cloud self-collection parameters.
+real(r8) :: boss_cloud_selfcol_a = 0._r8
+real(r8) :: boss_cloud_selfcol_b = 0._r8
+! BOSS autoconversion parameters.
+real(r8) :: boss_auto_cloud_size = 0._r8
+real(r8) :: boss_auto_rain_size = 0._r8
+real(r8) :: boss_auto_non_rain_term_a = 0._r8
+real(r8) :: boss_auto_non_rain_term_b = 0._r8
+real(r8) :: boss_auto_rain_term_a = 0._r8
+real(r8) :: boss_auto_rain_term_b_cloud = 0._r8
+real(r8) :: boss_auto_rain_term_b_rain = 0._r8
+real(r8) :: boss_auto_rain_term_b_num = 0._r8
+! BOSS accretion parameters.
+real(r8) :: boss_accr_a = 0._r8
+real(r8) :: boss_accr_b_cloud = 0._r8
+real(r8) :: boss_accr_b_rain = 0._r8
+! BOSS rain self-collection parameters.
+real(r8) :: boss_rain_selfcol_a = 0._r8
+real(r8) :: boss_rain_selfcol_b = 0._r8
+! BOSS cloud fall speed parameters.
+real(r8) :: boss_cloud_fall0_a = 0._r8
+real(r8) :: boss_cloud_fall0_b = 0._r8
+real(r8) :: boss_cloud_fall3_a = 0._r8
+real(r8) :: boss_cloud_fall3_b = 0._r8
+! BOSS rain fall speed parameters.
+real(r8) :: boss_rain_fall0_a = 0._r8
+real(r8) :: boss_rain_fall0_b = 0._r8
+real(r8) :: boss_rain_fall3_a = 0._r8
+real(r8) :: boss_rain_fall3_b = 0._r8
+
 integer :: ncnst = 4       ! Number of constituents
 
 character(len=8), parameter :: &      ! Constituent names
@@ -281,7 +321,8 @@ subroutine micro_mg_cam_readnl(nlfile)
        microp_uniform, micro_mg_dcs, micro_mg_precip_frac_method, &
        micro_mg_mass_gradient_alpha, micro_mg_mass_gradient_beta, &
        micro_mg_berg_eff_factor, micro_do_nccons, micro_do_nicons, &
-       micro_nccons, micro_nicons, micro_mincdnc 
+       micro_nccons, micro_nicons, micro_mincdnc, rain_evap_use_boss, &
+       liq_collisional_use_boss, liq_fall_speed_use_boss
 
   !-----------------------------------------------------------------------------
 
@@ -308,7 +349,9 @@ subroutine micro_mg_cam_readnl(nlfile)
      mincdnc = micro_mincdnc
      
      num_steps = micro_mg_num_steps
-     
+
+     use_boss = rain_evap_use_boss .or. liq_collisional_use_boss .or. &
+          liq_fall_speed_use_boss
 
      ! Verify that version numbers are valid.
      select case (micro_mg_version)
@@ -331,6 +374,10 @@ subroutine micro_mg_cam_readnl(nlfile)
      case default
         call bad_version_endrun()
      end select
+
+     if (use_boss .and. micro_mg_version /= 2) then
+        call endrun("micro_mg_cam_readnl: BOSS only implemented in MG2")
+     end if
 
      if (micro_mg_dcs < 0._r8) call endrun( "micro_mg_cam_readnl: &
           &micro_mg_dcs has not been set to a valid value.")
@@ -372,6 +419,10 @@ subroutine micro_mg_cam_readnl(nlfile)
 
 #endif
 
+if (use_boss) then
+   call micro_boss_readnl(nlfile)
+end if
+
 contains
 
   subroutine bad_version_endrun
@@ -383,6 +434,76 @@ contains
   end subroutine bad_version_endrun
 
 end subroutine micro_mg_cam_readnl
+!===============================================================================
+
+subroutine micro_boss_readnl(nlfile)
+
+  use namelist_utils,  only: find_group_name
+  use units,           only: getunit, freeunit
+  use mpishorthand
+
+  character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
+
+  ! Local variables
+  integer :: unitn, ierr
+  character(len=*), parameter :: subname = 'micro_boss_readnl'
+
+  namelist /boss_nl/ boss_rain_evap_a, boss_rain_evap_b, boss_cloud_selfcol_a, &
+       boss_cloud_selfcol_b, boss_auto_cloud_size, boss_auto_rain_size, &
+       boss_auto_non_rain_term_a, boss_auto_non_rain_term_b, &
+       boss_auto_rain_term_a, boss_auto_rain_term_b_cloud, &
+       boss_auto_rain_term_b_rain, boss_auto_rain_term_b_num, &
+       boss_accr_a, boss_accr_b_cloud, boss_accr_b_rain, boss_rain_selfcol_a, &
+       boss_rain_selfcol_b, boss_cloud_fall0_a, boss_cloud_fall0_b, &
+       boss_cloud_fall3_a, boss_cloud_fall3_b, boss_rain_fall0_a, &
+       boss_rain_fall0_b, boss_rain_fall3_a, boss_rain_fall3_b
+
+  !-----------------------------------------------------------------------------
+
+  if (masterproc) then
+     unitn = getunit()
+     open( unitn, file=trim(nlfile), status='old' )
+     call find_group_name(unitn, 'boss_nl', status=ierr)
+     if (ierr == 0) then
+        read(unitn, boss_nl, iostat=ierr)
+        if (ierr /= 0) then
+           call endrun(subname // ':: ERROR reading namelist')
+        end if
+     end if
+     close(unitn)
+     call freeunit(unitn)
+  end if
+
+#ifdef SPMD
+  ! Broadcast namelist variables
+  call mpibcast(boss_rain_evap_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_evap_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_cloud_selfcol_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_cloud_selfcol_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_cloud_size, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_rain_size, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_non_rain_term_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_non_rain_term_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_rain_term_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_rain_term_b_cloud, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_rain_term_b_rain, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_auto_rain_term_b_num, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_accr_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_accr_b_cloud, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_accr_b_rain, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_selfcol_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_selfcol_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_cloud_fall0_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_cloud_fall0_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_cloud_fall3_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_cloud_fall3_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_fall0_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_fall0_b, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_fall3_a, 1, mpir8, 0, mpicom)
+  call mpibcast(boss_rain_fall3_b, 1, mpir8, 0, mpicom)
+#endif
+
+end subroutine micro_boss_readnl
 
 !================================================================================================
 
@@ -616,6 +737,7 @@ end subroutine micro_mg_cam_init_cnst
 subroutine micro_mg_cam_init(pbuf2d)
    use time_manager,   only: is_first_step
    use micro_mg_utils, only: micro_mg_utils_init
+   use micro_boss, only: micro_boss_init
    use micro_mg1_0, only: micro_mg_init1_0 => micro_mg_init
    use micro_mg1_5, only: micro_mg_init1_5 => micro_mg_init
    use micro_mg2_0, only: micro_mg_init2_0 => micro_mg_init
@@ -714,7 +836,21 @@ subroutine micro_mg_cam_init(pbuf2d)
               allow_sed_supersat, ice_sed_ai, prc_coef1_in,prc_exp_in, &
               prc_exp1_in, cld_sed_in, mg_prc_coeff_fix_in, &
               micro_mg_mass_gradient_alpha, micro_mg_mass_gradient_beta, &
-              errstring)
+              rain_evap_use_boss, liq_collisional_use_boss, &
+              liq_fall_speed_use_boss, errstring)
+         if (use_boss) then
+            call micro_boss_init(boss_rain_evap_a, boss_rain_evap_b, &
+                 boss_cloud_selfcol_a, boss_cloud_selfcol_b, &
+                 boss_auto_cloud_size, boss_auto_rain_size, &
+                 boss_auto_non_rain_term_a, boss_auto_non_rain_term_b, &
+                 boss_auto_rain_term_a, boss_auto_rain_term_b_cloud, &
+                 boss_auto_rain_term_b_rain, boss_auto_rain_term_b_num, &
+                 boss_accr_a, boss_accr_b_cloud, boss_accr_b_rain, &
+                 boss_rain_selfcol_a, boss_rain_selfcol_b, boss_cloud_fall0_a, &
+                 boss_cloud_fall0_b, boss_cloud_fall3_a, boss_cloud_fall3_b, &
+                 boss_rain_fall0_a, boss_rain_fall0_b, boss_rain_fall3_a, &
+                 boss_rain_fall3_b)
+         end if
       end select
    end select
 

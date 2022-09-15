@@ -216,6 +216,15 @@ logical  :: allow_sed_supersat ! Allow supersaturated conditions after sedimenta
 logical :: nccons 
 logical :: nicons
 
+! Options to replace MG physics with BOSS routines.
+! Rain evaporation
+logical :: rain_evap_use_boss
+! Liquid drop collisions
+! (autoconversion, accretion, cloud and rain self-collection)
+logical :: liq_collisional_use_boss
+! Liquid drop fall speeds
+logical :: liq_fall_speed_use_boss
+
 !===============================================================================
 contains
 !===============================================================================
@@ -229,7 +238,8 @@ subroutine micro_mg_init( &
      micro_mg_precip_frac_method_in, micro_mg_berg_eff_factor_in, &
      allow_sed_supersat_in, ice_sed_ai, prc_coef1_in,prc_exp_in,  &
      prc_exp1_in, cld_sed_in, mg_prc_coeff_fix_in, alpha_grad_in, &
-     beta_grad_in, errstring)
+     beta_grad_in, rain_evap_use_boss_in, liq_collisional_use_boss_in, &
+     liq_fall_speed_use_boss_in, errstring)
 
   use micro_mg_utils, only: micro_mg_utils_init
 
@@ -278,6 +288,11 @@ subroutine micro_mg_init( &
   real(r8), intent(in)  :: ncnst_in
   real(r8), intent(in)  :: ninst_in        
   real(r8), intent(in)  :: mincdnc_in
+
+  ! Which processes to use BOSS for.
+  logical, intent(in)   :: rain_evap_use_boss_in
+  logical, intent(in)   :: liq_collisional_use_boss_in
+  logical, intent(in)   :: liq_fall_speed_use_boss_in
 
   character(128), intent(out) :: errstring    ! Output status (non-blank for error return)
 
@@ -329,6 +344,11 @@ subroutine micro_mg_init( &
   ninst = ninst_in
   mincdnc = mincdnc_in
   use_hetfrz_classnuc = use_hetfrz_classnuc_in
+
+  ! BOSS flags
+  rain_evap_use_boss = rain_evap_use_boss_in
+  liq_collisional_use_boss = liq_collisional_use_boss_in
+  liq_fall_speed_use_boss = liq_fall_speed_use_boss_in
 
   ! typical air density at 850 mb
 
@@ -444,6 +464,21 @@ subroutine micro_mg_tend ( &
        accrete_cloud_ice_snow, &
        evaporate_sublimate_precip, &
        bergeron_process_snow
+
+  ! BOSS intermediate variable calculations.
+  use micro_boss, only: &
+       boss_thermo, &
+       boss_m
+
+  ! BOSS processes.
+  use micro_boss, only: &
+       boss_rain_evap, &
+       boss_cloud_selfcol, &
+       boss_auto, &
+       boss_accr, &
+       boss_rain_selfcol, &
+       boss_cloud_fall, &
+       boss_rain_fall
 
   !Authors: Hugh Morrison, Andrew Gettelman, NCAR, Peter Caldwell, LLNL
   ! e-mail: morrison@ucar.edu, andrew@ucar.edu
@@ -689,6 +724,8 @@ subroutine micro_mg_tend ( &
   real(r8) :: prc(mgncol,nlev)    ! mass mixing ratio
   real(r8) :: nprc(mgncol,nlev)   ! number concentration (rain)
   real(r8) :: nprc1(mgncol,nlev)  ! number concentration (cloud droplets)
+  ! self-collection of cloud droplets
+  real(r8) :: ncagg(mgncol,nlev)  ! number concentration
   ! self-aggregation of snow
   real(r8) :: nsagg(mgncol,nlev)  ! number concentration
   ! self-collection of rain
@@ -753,6 +790,14 @@ subroutine micro_mg_tend ( &
 
   ! relative humidity
   real(r8) :: relhum(mgncol,nlev)
+
+  ! BOSS fields
+  real(r8) :: thermo(mgncol,nlev)
+  real(r8) :: mc(mgncol)
+  real(r8) :: mr(mgncol)
+  real(r8) :: num_fall_speed
+  ! BOSS density correction factor for fallspeed
+  real(r8) :: boss_rhofac(mgncol,nlev)
 
   real(r8) :: dcst(mgncol,nlev)        ! t-dependent dcs
 
@@ -910,6 +955,12 @@ subroutine micro_mg_tend ( &
   acn=g*rhow/(18._r8*mu) * cld_sed
   ain=ai*(rhosu/rho)**0.35_r8
 
+  if (liq_fall_speed_use_boss) then
+     ! Uses reference surface air density typical of values used to originally
+     ! develop BOSS.
+     boss_rhofac = (1.188_r8 / rho)**0.54_r8
+  end if
+
   !cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
   ! Get humidity and saturation vapor pressures
 
@@ -930,6 +981,13 @@ subroutine micro_mg_tend ( &
   end do
 
   relhum = q / max(qvl, qsmall)
+
+  !===============================================
+  ! Calculate thermodynamic (saturation) factor used by BOSS
+
+  if (rain_evap_use_boss) then
+     thermo = boss_thermo(rho, t, q, qvl, xxlv, dv)
+  end if
 
   !===============================================
 
@@ -1315,18 +1373,7 @@ subroutine micro_mg_tend ( &
      end do
 
      !========================================================================
-     ! autoconversion of cloud liquid water to rain
-     ! formula from Khrouditnov and Kogan (2000), modified for sub-grid distribution of qc
-     ! minimum qc of 1 x 10^-8 prevents floating point error
-
-     call kk2000_liq_autoconversion(microp_uniform, qcic(:,k), &
-          ncic(:,k), rho(:,k), relvar(:,k),mg_prc_coeff_fix,prc_coef1,prc_exp,prc_exp1, prc(:,k), nprc(:,k), nprc1(:,k))
-
-     if (precip_off) then
-       prc(:,k) = 0.0_r8
-       nprc(:,k) = 0.0_r8
-       nprc1(:,k) = 0.0_r8
-     endif
+     ! Calculate in-cloud rain and number.
 
      ! assign qric based on prognostic qr, using assumed precip fraction
      ! note: this could be moved above for consistency with qcic and qiic calculations
@@ -1348,6 +1395,36 @@ subroutine micro_mg_tend ( &
      ! taking root of negative later
 
      nric(:,k)=max(nric(:,k),0._r8)
+
+     !========================================================================
+     ! Calculate BOSS size parameters.
+     if (liq_collisional_use_boss) then
+        mc = boss_m(qcic(:,k), ncic(:,k))
+     end if
+
+     if (rain_evap_use_boss .or. liq_collisional_use_boss) then
+        mr = boss_m(qric(:,k), nric(:,k))
+     end if
+
+     !========================================================================
+     ! autoconversion of cloud liquid water to rain
+
+     if (precip_off) then
+       prc(:,k) = 0.0_r8
+       nprc(:,k) = 0.0_r8
+       nprc1(:,k) = 0.0_r8
+     else
+        if (liq_collisional_use_boss) then
+           ! BOSS autoconversion formula
+           call boss_auto(qcic(:,k), ncic(:,k), mc, qric(:,k), nric(:,k), mr, &
+                relvar(:,k), prc(:,k), nprc1(:,k), nprc(:,k))
+        else
+           ! formula from Khrouditnov and Kogan (2000), modified for sub-grid distribution of qc
+           call kk2000_liq_autoconversion(microp_uniform, qcic(:,k), &
+                ncic(:,k), rho(:,k), relvar(:,k), mg_prc_coeff_fix, prc_coef1, &
+                prc_exp, prc_exp1, prc(:,k), nprc(:,k), nprc1(:,k))
+        end if
+     end if
 
      if(dcs_tdep) then
         ! Get size distribution parameters for cloud ice
@@ -1524,10 +1601,26 @@ subroutine micro_mg_tend ( &
      call heterogeneous_rain_freezing(t(:,k), qric(:,k), nric(:,k), lamr(:,k), &
           mnuccr(:,k), nnuccr(:,k))
 
-     call accrete_cloud_water_rain(microp_uniform, qric(:,k), qcic(:,k), &
-          ncic(:,k), relvar(:,k), accre_enhan(:,k), pra(:,k), npra(:,k))
+     if (liq_collisional_use_boss) then
+        call boss_cloud_selfcol(qcic(:,k), ncic(:,k), mc, relvar(:,k), &
+             ncagg(:,k))
 
-     call self_collection_rain(rho(:,k), qric(:,k), nric(:,k), nragg(:,k))
+        call boss_accr(qcic(:,k), ncic(:,k), mc, qric(:,k), nric(:,k), mr, &
+             relvar(:,k), pra(:,k), npra(:,k))
+        pra(:,k) = pra(:,k) * accre_enhan(:,k)
+        npra(:,k) = npra(:,k) * accre_enhan(:,k)
+
+        call boss_rain_selfcol(qric(:,k), nric(:,k), mr, nragg(:,k))
+        ! Match MG2 sign convention for rain self-collection.
+        nragg(:,k) = -nragg(:,k)
+     else
+        ncagg(:,k) = 0._r8
+
+        call accrete_cloud_water_rain(microp_uniform, qric(:,k), qcic(:,k), &
+             ncic(:,k), relvar(:,k), accre_enhan(:,k), pra(:,k), npra(:,k))
+
+        call self_collection_rain(rho(:,k), qric(:,k), nric(:,k), nragg(:,k))
+     end if
 
      if (do_cldice) then
         call accrete_cloud_ice_snow(t(:,k), rho(:,k), asn(:,k), qiic(:,k), niic(:,k), &
@@ -1542,6 +1635,13 @@ subroutine micro_mg_tend ( &
           lcldm(:,k), precip_frac(:,k), arn(:,k), asn(:,k), qcic(:,k), qiic(:,k), &
           qric(:,k), qsic(:,k), lamr(:,k), n0r(:,k), lams(:,k), n0s(:,k), &
           pre(:,k), prds(:,k))
+
+     if (rain_evap_use_boss) then
+        ! Overwrite rain tendency with BOSS calculation.
+        call boss_rain_evap(thermo(:,k), qric(:,k), nric(:,k), mr, pre(:,k))
+        ! Match MG2 sign convention for rain evaporation.
+        pre(:,k) = -pre(:,k)
+     end if
 
      call bergeron_process_snow(t(:,k), rho(:,k), dv(:,k), mu(:,k), sc(:,k), &
           qvl(:,k), qvi(:,k), asn(:,k), qcic(:,k), qsic(:,k), lams(:,k), n0s(:,k), &
@@ -1645,13 +1745,15 @@ subroutine micro_mg_tend ( &
         !===================================================================
         ! conservation of nc
         !-------------------------------------------------------------------
-        dum = (nprc1(i,k)+npra(i,k)+nnuccc(i,k)+nnucct(i,k)+ &
+        dum = (ncagg(i,k)+nprc1(i,k)+npra(i,k)+nnuccc(i,k)+nnucct(i,k)+ &
              npsacws(i,k)-nsubc(i,k))*lcldm(i,k)*deltat
 
         if (dum.gt.nc(i,k)) then
-           ratio = nc(i,k)/deltat/((nprc1(i,k)+npra(i,k)+nnuccc(i,k)+nnucct(i,k)+&
+           ratio = nc(i,k)/deltat/((ncagg(i,k)+nprc1(i,k)+npra(i,k)+&
+                nnuccc(i,k)+nnucct(i,k)+&
                 npsacws(i,k)-nsubc(i,k))*lcldm(i,k))*omsm
 
+           ncagg(i,k) = ncagg(i,k)*ratio
            nprc1(i,k) = nprc1(i,k)*ratio
            npra(i,k) = npra(i,k)*ratio
            nnuccc(i,k) = nnuccc(i,k)*ratio
@@ -1699,10 +1801,6 @@ subroutine micro_mg_tend ( &
      end do
 
      do i=1,mgncol
-
-        ! conservation of rain number
-        !-------------------------------------------------------------------
-
         ! Add evaporation of rain number.
         if (pre(i,k) < 0._r8) then
 	   ! We would normally divide qr and nr by precip_frac for an in-precip
@@ -1712,11 +1810,12 @@ subroutine micro_mg_tend ( &
         else
            nsubr(i,k) = 0._r8
         end if
-
      end do
 
      do i=1,mgncol
 
+        ! conservation of rain number
+        !-------------------------------------------------------------------
         dum = ((-nsubr(i,k)+npracs(i,k)+nnuccr(i,k)+nnuccri(i,k)-nragg(i,k))*precip_frac(i,k)- &
              nprc(i,k)*lcldm(i,k))*deltat
 
@@ -1969,7 +2068,7 @@ subroutine micro_mg_tend ( &
 
         nctend(i,k) = nctend(i,k)+&
              (-nnuccc(i,k)-nnucct(i,k)-npsacws(i,k)+nsubc(i,k) &
-             -npra(i,k)-nprc1(i,k))*lcldm(i,k)
+             -npra(i,k)-ncagg(i,k)-nprc1(i,k))*lcldm(i,k)
 
         if (do_cldice) then
            if (use_hetfrz_classnuc) then
@@ -2122,8 +2221,14 @@ subroutine micro_mg_tend ( &
         ! calculate number and mass weighted fall velocity for droplets and cloud ice
         !-------------------------------------------------------------------
 
+        if (liq_fall_speed_use_boss) then
+           mc(i) = boss_m(dumc(i,k), dumnc(i,k))
+           call boss_cloud_fall(acn(i,k), dumc(i,k), mc(i), relvar(i,k), &
+                vtrmc(i,k), num_fall_speed)
 
-        if (dumc(i,k).ge.qsmall) then
+           fc(k) = g * rho(i,k) * vtrmc(i,k)
+           fnc(k) = g * rho(i,k) * num_fall_speed
+        elseif (dumc(i,k).ge.qsmall) then
 
            vtrmc(i,k)=acn(i,k)*gamma(4._r8+bc+pgam(i,k))/ &
                 (lamc(i,k)**bc*gamma(pgam(i,k)+4._r8))
@@ -2158,7 +2263,16 @@ subroutine micro_mg_tend ( &
         call size_dist_param_basic(mg_rain_props, dumr(i,k), dumnr(i,k), &
              lamr(i,k))
 
-        if (lamr(i,k).ge.qsmall) then
+        if (liq_fall_speed_use_boss) then
+           mr(i) = boss_m(dumr(i,k), dumnr(i,k))
+           call boss_rain_fall(boss_rhofac(i,k), dumr(i,k), mr(i), umr(i,k), &
+                unr(i,k))
+           unr(i,k) = min(unr(i,k), 9.1_r8*rhof(i,k))
+           umr(i,k) = min(umr(i,k), 9.1_r8*rhof(i,k))
+
+           fr(k) = g * rho(i,k) * umr(i,k)
+           fnr(k) = g * rho(i,k) * unr(i,k)
+        elseif (lamr(i,k).ge.qsmall) then
 
            ! 'final' values of number and mass weighted mean fallspeed for rain (m/s)
 
