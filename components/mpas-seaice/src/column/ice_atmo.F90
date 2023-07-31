@@ -61,7 +61,8 @@
                                       Cdn_atm,            &
                                       Cdn_atm_ratio_n,    &
                                       uvel,     vvel,     &
-                                      Uref)
+                                      Uref,               &
+                                      UrefWithGusts)
 
       character (len=3), intent(in) :: &
          sfctype      ! ice or ocean
@@ -109,7 +110,8 @@
          vvel         ! y-direction ice speed (m/s)
 
       real (kind=dbl_kind), intent(out) :: &
-         Uref         ! reference height wind speed (m/s)
+         Uref     , & ! reference height wind speed (m/s)
+         UrefWithGusts! reference height wind speed with gusts included (m/s)
 
       ! local variables
 
@@ -186,6 +188,7 @@
       Tref = c0
       Qref = c0
       Uref = c0
+      UrefWithGusts = c0
       delt = c0
       delq = c0
       shcoef = c0
@@ -372,8 +375,13 @@
 
       if (highfreq .and. sfctype(1:3)=='ice') then
          Uref = sqrt((uatm-uvel)**2 + (vatm-vvel)**2) * rd / rdn
+         UrefWithGusts = sqrt((uatm-uvel)**2 + (vatm-vvel)**2 + ugust**2) * rd / rdn
       else
-         Uref = vmag * rd / rdn
+         Uref = sqrt(uatm**2 + vatm**2) * rd / rdn
+         ! Note that the below is consistent with earlier code, but unlike the
+         ! other Uref calculations, the use of vmag here means that
+         ! UrefWithGusts is subject to the umin limiter.
+         UrefWithGusts = vmag * rd /rdn
       endif
 
       end subroutine atmo_boundary_layer

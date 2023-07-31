@@ -3756,6 +3756,11 @@
 		     dimensions="nCells Time"
 		     units="m s-1"
 		/>
+		<var name="atmosSpeed10mWithGusts"
+		     type="real"
+		     dimensions="nCells Time"
+		     units="m s-1"
+		/>
 		<var name="atmosReferenceTemperature2m"
 		     type="real"
 		     dimensions="nCells Time"

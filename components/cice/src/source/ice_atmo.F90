@@ -59,7 +59,8 @@
                                       wind,     zlvl,     &  
                                       Qa,       rhoa,     &
                                       strx,     stry,     &   
-                                      Uref,               &
+                                      Uref,               &   
+                                      UrefWithGusts,      &
                                       Tref,     Qref,     &
                                       delt,     delq,     &
                                       lhcoef,   shcoef)
@@ -120,6 +121,7 @@
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          Uref     , & ! reference height wind speed (m/s)
+         UrefWithGusts, & ! reference height wind speed with gusts (m/s)
          Tref     , & ! reference height temperature  (K)
          Qref     , & ! reference height specific humidity (kg/kg)
          delt     , & ! potential T difference   (K)
@@ -204,6 +206,7 @@
       do j = 1, ny_block
       do i = 1, nx_block
          Uref(i,j) = c0
+         UrefWithGusts(i,j) = c0
          Tref(i,j) = c0
          Qref(i,j) = c0
          delt(i,j) = c0
@@ -414,7 +417,8 @@
                   * (alz(ij) + al2 - psixh(ij) + psix2)
          Qref(i,j)= Qa(i,j) - delq(i,j)*fac
 
-         Uref(i,j)= vmag(ij) * rd(ij) / rdn(ij)
+         Uref(i,j)= windit(ij) * rd(ij) / rdn(ij)
+         UrefWithGusts(i,j)= vmag(ij) * rd(ij) / rdn(ij)
       enddo                     ! ij
 
       end subroutine atmo_boundary_layer

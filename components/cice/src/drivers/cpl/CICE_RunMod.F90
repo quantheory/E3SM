@@ -178,6 +178,7 @@
          strairxn    , & ! air/ice zonal  strss,              (N/m^2)
          strairyn    , & ! air/ice merdnl strss,              (N/m^2)
          Urefn       , & ! wind speed reference level         (m/s)
+         UrefWithGustsn, & ! wind speed reference level with gusts (m/s)
          Trefn       , & ! air tmp reference level            (K)
          Qrefn           ! air sp hum reference level         (kg/kg)
 
@@ -316,7 +317,7 @@
                                         wind(:,:,iblk), zlvl(:,:,iblk), &
                                         Qa  (:,:,iblk), rhoa(:,:,iblk), &
                                         strairxn,       strairyn,       &
-                                        Urefn,                          &
+                                        Urefn,          UrefWithGustsn, &
                                         Trefn,          Qrefn,          &
                                         worka,          workb,          &
                                         lhcoef,         shcoef)
@@ -326,6 +327,7 @@
 
             ! Initialize for safety
             Urefn (:,:)  = c0
+            UrefWithGustsn (:,:)  = c0
             Trefn (:,:)  = c0
             Qrefn (:,:)  = c0
             lhcoef(:,:)  = c0
@@ -490,7 +492,7 @@
                             dfswthrun_nopond(:,:,n,iblk),              &
 #endif
                             evapn,                                    &
-                            Urefn,                                    &
+                            Urefn,              UrefWithGustsn,       &
                             Trefn,              Qrefn,                &
                             freshn,             fsaltn,               &
                             fhocnn,             fswthrun(:,:,n,iblk), &
@@ -514,7 +516,7 @@
                             dfswint_nopond(:,:,iblk),dfswthru_nopond(:,:,iblk),&
 #endif
                             evap    (:,:,iblk),                       &
-                            Uref    (:,:,iblk),                       &
+                            Uref    (:,:,iblk), UrefWithGusts(:,:,iblk),&
                             Tref    (:,:,iblk), Qref      (:,:,iblk), &
                             fresh   (:,:,iblk), fsalt   (:,:,iblk),   &
                             fhocn   (:,:,iblk), fswthru (:,:,iblk),   &
@@ -775,7 +777,8 @@
                             fsens    (:,:,iblk), flat    (:,:,iblk), &
                             fswabs   (:,:,iblk), flwout  (:,:,iblk), &
                             evap     (:,:,iblk),                     &
-                            Uref     (:,:,iblk),                     &
+                            Uref     (:,:,iblk), UrefWithGusts(:,:,iblk), &
+                            ugust    (:,:,iblk),                     &
                             Tref     (:,:,iblk), Qref    (:,:,iblk), &
                             fresh    (:,:,iblk), fsalt   (:,:,iblk), &
                             fhocn    (:,:,iblk), fswthru (:,:,iblk), &

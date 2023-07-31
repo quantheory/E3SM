@@ -8,7 +8,7 @@ module ice_import_export
   use ice_constants   , only: field_type_vector, c100
   use ice_blocks      , only: block, get_block, nx_block, ny_block
   use ice_flux        , only: strairxt, strairyt, strocnxt, strocnyt           
-  use ice_flux        , only: alvdr, alidr, alvdf, alidf, Tref, Qref, Uref
+  use ice_flux        , only: alvdr, alidr, alvdf, alidf, Tref, Qref, Uref, UrefWithGusts
   use ice_flux        , only: flat, fsens, flwout, evap, fswabs, fhocn, fswthru                                          
   use ice_flux        , only: fresh, fsalt, zlvl, uatm, vatm, potT, Tair, Qa
   use ice_flux        , only: rhoa, swvdr, swvdf, swidr, swidf, flw, frain
@@ -457,6 +457,7 @@ contains
                 i2x(index_i2x_Si_avsdf ,n)    = alvdf(i,j,iblk)
                 i2x(index_i2x_Si_anidf ,n)    = alidf(i,j,iblk)
                 i2x(index_i2x_Si_u10  ,n)     = Uref(i,j,iblk)
+                i2x(index_i2x_Si_u10withgusts,n)     = UrefWithGusts(i,j,iblk)
                 i2x(index_i2x_Si_tref  ,n)    = Tref(i,j,iblk)
                 i2x(index_i2x_Si_qref  ,n)    = Qref(i,j,iblk)
                 i2x(index_i2x_Si_snowh ,n)    = vsno(i,j,iblk) &

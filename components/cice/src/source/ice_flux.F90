@@ -174,6 +174,7 @@
          fswabs  , & ! shortwave flux absorbed in ice and ocean (W/m^2)
          flwout  , & ! outgoing longwave radiation (W/m^2)
          Uref    , & ! 10m reference wind speed (m/s)
+         UrefWithGusts, & ! 10m reference wind speed with gusts (m/s)
          Tref    , & ! 2m atm reference temperature (K)
          Qref    , & ! 2m atm reference spec humidity (kg/kg)
          evap        ! evaporative water flux (kg/m^2/s)
@@ -291,7 +292,8 @@
          alidr_ocn   , & ! near-ir, direct   (fraction)
          alvdf_ocn   , & ! visible, diffuse  (fraction)
          alidf_ocn   , & ! near-ir, diffuse  (fraction)
-         Uref_ocn    , & ! 2m reference wind speed (m/s)
+         Uref_ocn    , & ! 10m reference wind speed (m/s)
+         UrefWithGusts_ocn    , & ! 10m reference wind speed with gusts (m/s)
          Tref_ocn    , & ! 2m atm reference temperature (K)
          Qref_ocn        ! 2m atm reference spec humidity (kg/kg)
 
@@ -474,6 +476,7 @@
                         ! in case atm model diagnoses Tsfc from flwout
       evap    (:,:,:) = c0
       Uref    (:,:,:) = c0
+      UrefWithGusts(:,:,:) = c0
       Tref    (:,:,:) = c0
       Qref    (:,:,:) = c0
       alvdr   (:,:,:) = c0
@@ -597,6 +600,7 @@
       flwout  (:,:,:) = c0
       evap    (:,:,:) = c0
       Uref    (:,:,:) = c0
+      UrefWithGusts(:,:,:) = c0
       Tref    (:,:,:) = c0
       Qref    (:,:,:) = c0
 
@@ -788,6 +792,7 @@
 #endif
                                evapn,                &
                                Urefn,                &
+                               UrefWithGustsn,       &
                                Trefn,    Qrefn,      &
                                freshn,   fsaltn,     &
                                fhocnn,   fswthrun,   &
@@ -811,7 +816,8 @@
                                dfswint_nopond, dfswthru_nopond, &
 #endif
                                evap,                 & 
-                               Uref,                 &
+                               Uref,                 & 
+                               UrefWithGusts,        &
                                Tref,     Qref,       &
                                fresh,    fsalt,      &
                                fhocn,    fswthru,    &
@@ -878,6 +884,7 @@
           flwoutn , & ! upwd lw emitted heat flx        (W/m**2)
           evapn   , & ! evaporation                     (kg/m2/s)
           Urefn   , & ! wind speed reference level  (m/s)
+          UrefWithGustsn, & ! wind speed reference level with gusts (m/s)
           Trefn   , & ! air tmp reference level         (K)
           Qrefn   , & ! air sp hum reference level      (kg/kg)
           freshn  , & ! fresh water flux to ocean       (kg/m2/s)
@@ -925,6 +932,7 @@
           flwout  , & ! upwd lw emitted heat flx        (W/m**2)
           evap    , & ! evaporation                     (kg/m2/s)
           Uref    , & ! wind speed reference level      (m/s)
+          UrefWithGusts, & ! wind speed reference level with gusts (m/s)
           Tref    , & ! air tmp reference level         (K)
           Qref    , & ! air sp hum reference level      (kg/kg)
           fresh   , & ! fresh water flux to ocean       (kg/m2/s)
@@ -991,6 +999,7 @@
              + (flwoutn(i,j) - (c1-emissivity)*flw(i,j))*aicen(i,j)
          evap     (i,j)  = evap    (i,j) + evapn   (i,j)*aicen(i,j)
          Uref     (i,j)  = Uref    (i,j) + Urefn   (i,j)*aicen(i,j)
+         UrefWithGusts(i,j)  = UrefWithGusts(i,j) + UrefWithGustsn(i,j)*aicen(i,j)
          Tref     (i,j)  = Tref    (i,j) + Trefn   (i,j)*aicen(i,j)
          Qref     (i,j)  = Qref    (i,j) + Qrefn   (i,j)*aicen(i,j)
 
@@ -1037,6 +1046,8 @@
                                fswabs,   flwout,   &
                                evap,               &
                                Uref,               &
+                               UrefWithGusts,      &
+                               ugust,              &
                                Tref,     Qref,     &
                                fresh,    fsalt,    &
                                fhocn,    fswthru,  &
@@ -1078,6 +1089,8 @@
           flwout  , & ! upwd lw emitted heat flx        (W/m**2)
           evap    , & ! evaporation                     (kg/m2/s)
           Uref    , & ! wind speed reference level      (m/s)
+          UrefWithGusts, & ! wind speed reference level with gusts(m/s)
+          ugust   , & ! gustiness wind speed            (m/s)
           Tref    , & ! air tmp reference level         (K)
           Qref    , & ! air sp hum reference level      (kg/kg)
           fresh   , & ! fresh water flux to ocean       (kg/m2/s)
@@ -1118,6 +1131,7 @@
             flwout  (i,j) = flwout  (i,j) * ar
             evap    (i,j) = evap    (i,j) * ar
             Uref    (i,j) = Uref    (i,j) * ar
+            UrefWithGusts (i,j) = UrefWithGusts(i,j) * ar
             Tref    (i,j) = Tref    (i,j) * ar
             Qref    (i,j) = Qref    (i,j) * ar
             fresh   (i,j) = fresh   (i,j) * ar
@@ -1139,6 +1153,7 @@
                ! to make upward longwave over ocean reasonable for history file
             evap    (i,j) = c0
             Uref    (i,j) = wind(i,j)
+            UrefWithGusts(i,j) = sqrt(wind(i,j)**2 + ugust(i,j)**2)
             Tref    (i,j) = Tair(i,j)
             Qref    (i,j) = Qa  (i,j)
             fresh   (i,j) = c0

@@ -1823,6 +1823,7 @@
                                     Qa          , rhoa        , &
                                     Tair        , Tref        , &
                                     Qref        , Uref        , &
+                                    UrefWithGusts,              &
                                     Cdn_atm_ratio,              &
                                     Cdn_ocn     , Cdn_ocn_skin, &
                                     Cdn_ocn_floe, Cdn_ocn_keel, &
@@ -1946,6 +1947,7 @@
          Tref        , & ! 2m atm reference temperature (K)
          Qref        , & ! 2m atm reference spec humidity (kg/kg)
          Uref        , & ! 10m atm reference wind speed (m/s)
+         UrefWithGusts, & ! 10m atm reference wind speed with gustiness (m/s)
          Cdn_atm     , & ! atm drag coefficient
          Cdn_ocn     , & ! ocn drag coefficient
          hfreebd     , & ! freeboard (m)
@@ -2061,6 +2063,7 @@
          Cdn_atm_ratio_n, & ! drag coefficient ratio
          Trefn       , & ! air tmp reference level                (K)
          Urefn       , & ! air speed reference level            (m/s)
+         UrefWithGustsn, & ! air speed reference level with gusts (m/s)
          Qrefn       , & ! air sp hum reference level         (kg/kg)
          Tbot        , & ! ice bottom surface temperature (deg C)
          shcoef      , & ! transfer coefficient for sensible heat
@@ -2145,6 +2148,7 @@
          Trefn  = c0
          Qrefn  = c0
          Urefn  = c0
+         UrefWithGustsn  = c0
          lhcoef = c0
          shcoef = c0
          worka  = c0
@@ -2176,7 +2180,8 @@
                                         Cdn_atm,                 &
                                         Cdn_atm_ratio_n,         &
                                         uvel,     vvel,          &
-                                        Uref=Urefn)
+                                        Uref=Urefn,              &
+                                        UrefWithGusts=UrefWithGustsn)
 
             endif   ! calc_Tsfc or calc_strair
 
@@ -2398,7 +2403,9 @@
                                meltt,      melts,        &
                                meltb,      congel,       &
                                snoice,     meltsliq,     &
-                               Uref,       Urefn)
+                               Uref,       Urefn,        &
+                               UrefWithGusts,            &
+                               UrefWithGustsn            )
 
       enddo                  ! ncat
 
@@ -3641,7 +3648,7 @@
                                      Cdn_atm,                    &
                                      Cdn_atm_ratio_n,            &
                                      uvel,        vvel,          &
-                                     Uref)
+                                     Uref,        UrefWithGusts  )
 
       use ice_atmo, only: atmo_boundary_const, atmo_boundary_layer
       use ice_constants_colpkg, only: c0
@@ -3682,14 +3689,16 @@
          vvel         ! y-direction ice speed (m/s)
 
       real (kind=dbl_kind), optional, intent(out) :: &
-         Uref         ! reference height wind speed (m/s)
+         Uref     , & ! reference height wind speed (m/s)
+         UrefWithGusts! reference height wind speed with gusts (m/s)
 
       real (kind=dbl_kind) :: &
-         worku, workv, workr
+         worku, workv, workr, works
 
       worku = c0
       workv = c0
       workr = c0
+      works = c0
       if (present(uvel)) then
          worku = uvel
       endif
@@ -3723,11 +3732,14 @@
                                             Cdn_atm,                 &
                                             Cdn_atm_ratio_n,         &
                                             worku,    workv,         &
-                                            workr)
+                                            workr,    works)
                endif ! atmbndy
 
       if (present(Uref)) then
          Uref = workr
+      endif
+      if (present(UrefWithGusts)) then
+         UrefWithGusts = works
       endif
 
       end subroutine colpkg_atm_boundary

@@ -3149,6 +3149,7 @@ contains
          airStressCellU, &
          airStressCellV, &
          atmosReferenceSpeed10m, &
+         atmosSpeed10mWithGusts, &
          atmosReferenceTemperature2m, &
          atmosReferenceHumidity2m
 
@@ -3180,6 +3181,7 @@ contains
        call MPAS_pool_get_array(shortwave, "absorbedShortwaveFlux", absorbedShortwaveFlux)
 
        call MPAS_pool_get_array(atmosCoupling, 'atmosReferenceSpeed10m', atmosReferenceSpeed10m)
+       call MPAS_pool_get_array(atmosCoupling, 'atmosSpeed10mWithGusts', atmosSpeed10mWithGusts)
        call MPAS_pool_get_array(atmosCoupling, 'atmosReferenceTemperature2m', atmosReferenceTemperature2m)
        call MPAS_pool_get_array(atmosCoupling, 'atmosReferenceHumidity2m', atmosReferenceHumidity2m)
 
@@ -3194,6 +3196,7 @@ contains
        absorbedShortwaveFlux       = 0.0_RKIND
 
        atmosReferenceSpeed10m      = 0.0_RKIND
+       atmosSpeed10mWithGusts      = 0.0_RKIND
        atmosReferenceTemperature2m = 0.0_RKIND
        atmosReferenceHumidity2m    = 0.0_RKIND
 

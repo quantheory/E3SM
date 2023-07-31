@@ -53,7 +53,9 @@
                                meltt,    melts,      &
                                meltb,    congel,     &
                                snoice,   meltsliq,   &
-                               Uref,     Urefn       )
+                               Uref,     Urefn,      &
+                               UrefWithGusts,        &
+                               UrefWithGustsn        )
 
       ! single category fluxes
       real (kind=dbl_kind), intent(in) :: &
@@ -84,7 +86,8 @@
           snoicen     ! snow-ice growth                 (m)
            
       real (kind=dbl_kind), optional, intent(in):: &
-          Urefn       ! air speed reference level       (m/s)
+          Urefn   , & ! air speed reference level       (m/s)
+          UrefWithGustsn ! air speed reference level with gusts (m/s)
 
       ! cumulative fluxes
       real (kind=dbl_kind), intent(inout) :: &
@@ -112,7 +115,8 @@
           snoice      ! snow-ice growth                 (m)
 
       real (kind=dbl_kind), optional, intent(inout):: &
-          Uref        ! air speed reference level       (m/s)
+          Uref    , & ! air speed reference level       (m/s)
+          UrefWithGusts ! air speed reference level with gusts (m/s)
 
       !-----------------------------------------------------------------
       ! Merge fluxes
@@ -141,6 +145,9 @@
       ! ocean fluxes
       if (present(Urefn) .and. present(Uref)) then
          Uref = Uref     + Urefn     * aicen
+      endif
+      if (present(UrefWithGustsn) .and. present(UrefWithGusts)) then
+         UrefWithGusts = UrefWithGusts + UrefWithGustsn * aicen
       endif
 
       fresh     = fresh     + freshn    * aicen
