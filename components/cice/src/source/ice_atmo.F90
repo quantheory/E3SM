@@ -231,7 +231,7 @@
             i = indxi(ij)
             j = indxj(ij)
             wind0(ij) = max(wind(i,j), 0.01_dbl_kind)
-            vmag(ij) = max(umin, wind0(ij) + ugust(i,j))
+            vmag(ij) = max(umin, sqrt(wind0(ij)**2 + ugust(i,j)**2))
 !---------- (3b) option by Andrew Roberts
 !            wind0(ij)   = sqrt( (uatm(i,j)-uvel(i,j))**2 + (vatm(i,j)-vvel(i,j))**2)
 !---------- (3b) option end
@@ -247,7 +247,7 @@
             i = indxi(ij)
             j = indxj(ij)
             wind0(ij) = max(wind(i,j), 0.01_dbl_kind)
-            vmag(ij) = max(umin, wind0(ij) + ugust(i,j))
+            vmag(ij) = max(umin, sqrt(wind0(ij)**2 + ugust(i,j)**2))
 !---------- (3b) option by Andrew Roberts
 !            wind0(ij)   = sqrt( (uatm(i,j)-uvel(i,j))**2 + (vatm(i,j)-vvel(i,j))**2)
 !---------- (3b) option end
@@ -339,7 +339,7 @@
             tau(ij) = rhoa(i,j) * ustar(ij) * rd(ij) * windit(ij)
             call shr_flux_update_stress(wind0(ij), wsresp(i,j), tau_est(i,j), &
                  tau(ij), taupr(ij), dtau(ij), dtaupr(ij), windit(ij))
-            vmagit(ij) = max(umin, windit(ij) + ugust(i,j))
+            vmagit(ij) = max(umin, sqrt(windit(ij)**2 + ugust(i,j)**2))
 #endif
 
          enddo                  ! ij
