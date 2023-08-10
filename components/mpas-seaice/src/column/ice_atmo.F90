@@ -50,7 +50,8 @@
                                       calc_strair, formdrag, &
                                       highfreq, natmiter, &
                                       Tsf,      potT,     &
-                                      uatm,     vatm,     &  
+                                      uatm,     vatm,     &
+                                      ugust,              &
                                       wind,     zlvl,     &  
                                       Qa,       rhoa,     &
                                       strx,     stry,     &   
@@ -78,6 +79,7 @@
          potT     , & ! air potential temperature  (K)
          uatm     , & ! x-direction wind speed (m/s)
          vatm     , & ! y-direction wind speed (m/s)
+         ugust    , & ! sub-grid-scale gustiness (m/s)
          wind     , & ! wind speed (m/s)
          zlvl     , & ! atm level height (m)
          Qa       , & ! specific humidity (kg/kg)
@@ -206,7 +208,8 @@
 
             if (highfreq) then
                vmag = max(umin, sqrt( (uatm-uvel)**2 + &
-                                      (vatm-vvel)**2) )
+                                      (vatm-vvel)**2 + &
+                                      ugust**2 ) )
             else
                vmag = max(umin, wind)
             endif
@@ -318,8 +321,8 @@
             tau = rhoa * rd * rd ! not the stress at zlvl
 
             ! high frequency momentum coupling following Roberts et al. (2014)
-            strx = tau * sqrt((uatm-uvel)**2 + (vatm-vvel)**2) * (uatm-uvel)
-            stry = tau * sqrt((uatm-uvel)**2 + (vatm-vvel)**2) * (vatm-vvel)
+            strx = tau * sqrt((uatm-uvel)**2 + (vatm-vvel)**2 + ugust**2 ) * (uatm-uvel)
+            stry = tau * sqrt((uatm-uvel)**2 + (vatm-vvel)**2 + ugust**2 ) * (vatm-vvel)
 
          else
 
@@ -383,7 +386,7 @@
 ! (2) reference temperature and humidity are NOT computed
 
       subroutine atmo_boundary_const (sfctype,  calc_strair, &
-                                      uatm,     vatm,     &  
+                                      uatm,     vatm,     &
                                       wind,     rhoa,     &
                                       strx,     stry,     &   
                                       Tsf,      potT,     &

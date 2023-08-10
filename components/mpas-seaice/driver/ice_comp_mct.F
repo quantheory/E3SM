@@ -1821,6 +1821,7 @@ contains
       snowfallRateField,                &
       uAirVelocityField,                &
       vAirVelocityField,                &
+      uGustField,                       &
       oceanNitrateConcField,            &
       oceanSilicateConcField,           &
       oceanAmmoniumConcField,           &
@@ -1864,6 +1865,7 @@ contains
       snowfallRate,                &
       uAirVelocity,                &
       vAirVelocity,                &
+      uGust,                       &
       oceanNitrateConc,            &
       oceanSilicateConc,           &
       oceanAmmoniumConc,           &
@@ -1940,6 +1942,7 @@ contains
       call mpas_pool_get_array(atmosCoupling, 'snowfallRate', snowfallRate)
       call mpas_pool_get_array(atmosCoupling, 'uAirVelocity', uAirVelocity)
       call mpas_pool_get_array(atmosCoupling, 'vAirVelocity', vAirVelocity)
+      call mpas_pool_get_array(atmosCoupling, 'uGust', uGust)
 
       if (config_use_aerosols) then
          call mpas_pool_get_subpool(block_ptr % structs, 'aerosols', aerosols)
@@ -2028,6 +2031,13 @@ contains
         snowfallRate(i)                = x2i_i % rAttr(index_x2i_Faxa_snow, n)
         uAirVelocity(i)                = x2i_i % rAttr(index_x2i_Sa_u, n)
         vAirVelocity(i)                = x2i_i % rAttr(index_x2i_Sa_v, n)
+        if (index_x2i_Sa_ugust == 0) then
+           ! In this case, no gustiness field was exported; set to 0.
+           uGust(i)                    = 0.
+        else
+           ! Set gustiness from atmosphere coupling field.
+           uGust(i)                  = x2i_i % rAttr(index_x2i_Sa_ugust, n)
+        end if
 
         ! set aerosols, if configured
         if (config_use_aerosols) then
@@ -2172,6 +2182,7 @@ contains
    call mpas_pool_get_field(atmosCoupling, 'snowfallRate', snowfallRateField)
    call mpas_pool_get_field(atmosCoupling, 'uAirVelocity', uAirVelocityField)
    call mpas_pool_get_field(atmosCoupling, 'vAirVelocity', vAirVelocityField)
+   call mpas_pool_get_field(atmosCoupling, 'uGust', uGustField)
 
    if (config_use_aerosols) then
       call mpas_pool_get_subpool(domain % blocklist % structs, 'aerosols', aerosols)
@@ -2225,6 +2236,7 @@ contains
    call mpas_dmpar_exch_halo_field(snowfallRateField)
    call mpas_dmpar_exch_halo_field(uAirVelocityField)
    call mpas_dmpar_exch_halo_field(vAirVelocityField)
+   call mpas_dmpar_exch_halo_field(uGustField)
 
    if (config_use_aerosols) then
       call mpas_dmpar_exch_halo_field(atmosAerosolFluxField)

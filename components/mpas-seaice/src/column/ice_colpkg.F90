@@ -1818,6 +1818,7 @@
                                     rsnw        , use_smliq_pnd,&
                                     aerosno     , aeroice     , &
                                     uatm        , vatm        , &
+                                    ugust       ,               &
                                     wind        , zlvl        , &
                                     Qa          , rhoa        , &
                                     Tair        , Tref        , &
@@ -1916,6 +1917,7 @@
          zlvl        , & ! atm level height (m)
          uatm        , & ! wind velocity components (m/s)
          vatm        , &
+         ugust       , & ! sub-grid-scale gustiness (m/s)
          wind        , & ! wind speed (m/s)
          potT        , & ! air potential temperature  (K)
          Tair        , & ! air temperature  (K)
@@ -2164,6 +2166,7 @@
                call colpkg_atm_boundary( 'ice',                  &
                                         Tsfc(n),  potT,          &
                                         uatm,     vatm,          &
+                                        ugust,                   &
                                         wind,     zlvl,          &
                                         Qa,       rhoa,          &
                                         strairxn, strairyn,      &
@@ -3628,6 +3631,7 @@
       subroutine colpkg_atm_boundary(sfctype,                    &
                                      Tsf,         potT,          &
                                      uatm,        vatm,          &
+                                     ugust,                      &
                                      wind,        zlvl,          &
                                      Qa,          rhoa,          &
                                      strx,        stry,          &
@@ -3650,6 +3654,7 @@
          potT     , & ! air potential temperature  (K)
          uatm     , & ! x-direction wind speed (m/s)
          vatm     , & ! y-direction wind speed (m/s)
+         ugust    , & ! sub-grid-scale gustiness (m/s)
          wind     , & ! wind speed (m/s)
          zlvl     , & ! atm level height (m)
          Qa       , & ! specific humidity (kg/kg)
@@ -3708,6 +3713,7 @@
                                             highfreq, natmiter,      &
                                             Tsf,      potT,          &
                                             uatm,     vatm,          &
+                                            ugust,                   &
                                             wind,     zlvl,          &
                                             Qa,       rhoa,          &
                                             strx,     stry,          &

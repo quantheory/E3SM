@@ -1351,6 +1351,7 @@ contains
          vvelocityCell, &
          uAirVelocity, &
          vAirVelocity, &
+         uGust, &
          windSpeed, &
          airLevelHeight, &
          airSpecificHumidity, &
@@ -1581,6 +1582,7 @@ contains
 
        call MPAS_pool_get_array(atmos_coupling, "uAirVelocity", uAirVelocity)
        call MPAS_pool_get_array(atmos_coupling, "vAirVelocity", vAirVelocity)
+       call MPAS_pool_get_array(atmos_coupling, "uGust", uGust)
        call MPAS_pool_get_array(atmos_coupling, "airLevelHeight", airLevelHeight)
        call MPAS_pool_get_array(atmos_coupling, "airSpecificHumidity", airSpecificHumidity)
        call MPAS_pool_get_array(atmos_coupling, "airDensity", airDensity)
@@ -1788,6 +1790,7 @@ contains
                specificIceAerosol(:,:,:), &
                uAirVelocity(iCell), &
                vAirVelocity(iCell), &
+               uGust(iCell), &
                windSpeed(iCell), &
                airLevelHeight(iCell), &
                airSpecificHumidity(iCell), &
@@ -1947,6 +1950,7 @@ contains
              endif
              call mpas_log_write("uAirVelocity: $r", messageType=MPAS_LOG_ERR, realArgs=(/uAirVelocity(iCell)/))
              call mpas_log_write("vAirVelocity: $r", messageType=MPAS_LOG_ERR, realArgs=(/vAirVelocity(iCell)/))
+             call mpas_log_write("uGust: $r", messageType=MPAS_LOG_ERR, realArgs=(/uGust(iCell)/))
              call mpas_log_write("windSpeed: $r", messageType=MPAS_LOG_ERR, realArgs=(/windSpeed(iCell)/))
              call mpas_log_write("airLevelHeight: $r", messageType=MPAS_LOG_ERR, realArgs=(/airLevelHeight(iCell)/))
              call mpas_log_write("airSpecificHumidity: $r", messageType=MPAS_LOG_ERR, realArgs=(/airSpecificHumidity(iCell)/))
@@ -5385,6 +5389,7 @@ contains
          airSpecificHumidity, &
          uAirVelocity, &
          vAirVelocity, &
+         uGust, &
          windSpeed, &
          airLevelHeight, &
          airDensity, &
@@ -5466,6 +5471,7 @@ contains
        call MPAS_pool_get_array(atmosCoupling, "airPotentialTemperature", airPotentialTemperature)
        call MPAS_pool_get_array(atmosCoupling, "uAirVelocity", uAirVelocity)
        call MPAS_pool_get_array(atmosCoupling, "vAirVelocity", vAirVelocity)
+       call MPAS_pool_get_array(atmosCoupling, "uGust", uGust)
        call MPAS_pool_get_array(atmosCoupling, "airLevelHeight", airLevelHeight)
        call MPAS_pool_get_array(atmosCoupling, "airSpecificHumidity", airSpecificHumidity)
        call MPAS_pool_get_array(atmosCoupling, "airDensity", airDensity)
@@ -5510,6 +5516,7 @@ contains
                   airPotentialTemperature(iCell), &
                   uAirVelocity(iCell), &
                   vAirVelocity(iCell), &
+                  uGust(iCell), &
                   windSpeed(iCell), &
                   airLevelHeight(iCell), &
                   airSpecificHumidity(iCell), &
@@ -5570,6 +5577,7 @@ contains
                   airPotentialTemperature(iCell), &
                   uAirVelocity(iCell), &
                   vAirVelocity(iCell), &
+                  uGust(iCell), &
                   windSpeed(iCell), &
                   airLevelHeight(iCell), &
                   airSpecificHumidity(iCell), &

@@ -757,6 +757,7 @@ contains
          airTemperature, &
          airSpecificHumidity, &
          airDensity, &
+         uGust, &
          shortwaveDown, &
          shortwaveVisibleDirectDown, &
          shortwaveVisibleDiffuseDown, &
@@ -806,6 +807,7 @@ contains
     call MPAS_pool_get_array(atmosCoupling, "airTemperature", airTemperature)
     call MPAS_pool_get_array(atmosCoupling, "airSpecificHumidity", airSpecificHumidity)
     call MPAS_pool_get_array(atmosCoupling, "airDensity", airDensity)
+    call MPAS_pool_get_array(atmosCoupling, "uGust", uGust)
     call MPAS_pool_get_array(atmosCoupling, "shortwaveVisibleDirectDown", shortwaveVisibleDirectDown)
     call MPAS_pool_get_array(atmosCoupling, "shortwaveVisibleDiffuseDown", shortwaveVisibleDiffuseDown)
     call MPAS_pool_get_array(atmosCoupling, "shortwaveIRDirectDown", shortwaveIRDirectDown)
@@ -876,6 +878,9 @@ contains
        ! air density
        airDensity(iCell) = 1.3_RKIND
 
+       ! gustiness
+       uGust(iCell) = 0.0_RKIND
+
        ! longwave radiation
        call longwave_rosati_miyakoda(&
             longwaveDown(iCell), &
@@ -929,6 +934,7 @@ contains
          airTemperature, &
          airSpecificHumidity, &
          airDensity, &
+         uGust, &
          shortwaveDown, &
          shortwaveVisibleDirectDown, &
          shortwaveVisibleDiffuseDown, &
@@ -970,6 +976,7 @@ contains
     call MPAS_pool_get_array(atmosCoupling, "airTemperature", airTemperature)
     call MPAS_pool_get_array(atmosCoupling, "airSpecificHumidity", airSpecificHumidity)
     call MPAS_pool_get_array(atmosCoupling, "airDensity", airDensity)
+    call MPAS_pool_get_array(atmosCoupling, "uGust", uGust)
     call MPAS_pool_get_array(atmosCoupling, "shortwaveVisibleDirectDown", shortwaveVisibleDirectDown)
     call MPAS_pool_get_array(atmosCoupling, "shortwaveVisibleDiffuseDown", shortwaveVisibleDiffuseDown)
     call MPAS_pool_get_array(atmosCoupling, "shortwaveIRDirectDown", shortwaveIRDirectDown)
@@ -1028,6 +1035,9 @@ contains
        ! air density
        airDensity(iCell) = 1.3_RKIND
 
+       ! gustiness
+       uGust(iCell) = 0.0_RKIND
+
        ! precipitation
 
        ! divide total precipitation between rain and snow
@@ -1075,6 +1085,7 @@ contains
          shortwaveIRDiffuseDown, &
          uAirVelocity, &
          vAirVelocity, &
+         uGust, &
          windSpeed, &
          shortwaveDown, &
          latCell, &
@@ -1118,6 +1129,7 @@ contains
     call MPAS_pool_get_array(atmosCoupling, "shortwaveIRDiffuseDown", shortwaveIRDiffuseDown)
     call MPAS_pool_get_array(atmosCoupling, "uAirVelocity", uAirVelocity)
     call MPAS_pool_get_array(atmosCoupling, "vAirVelocity", vAirVelocity)
+    call MPAS_pool_get_array(atmosCoupling, "uGust", uGust)
 
     call MPAS_pool_get_array(atmosForcing, "windSpeed", windSpeed)
     call MPAS_pool_get_array(atmosForcing, "shortwaveDown", shortwaveDown)
@@ -1125,7 +1137,7 @@ contains
     do iCell = 1, nCellsSolve
 
        ! wind speed
-       windSpeed(iCell) = sqrt(uAirVelocity(iCell)**2 + vAirVelocity(iCell)**2)
+       windSpeed(iCell) = sqrt(uAirVelocity(iCell)**2 + vAirVelocity(iCell)**2 + uGust(iCell)**2)
 
     enddo ! iCell
 

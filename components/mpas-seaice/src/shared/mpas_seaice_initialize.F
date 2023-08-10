@@ -2281,6 +2281,7 @@ contains
     real(kind=RKIND), dimension(:), pointer :: &
          uAirVelocity, &
          vAirVelocity, &
+         uGust, &
          seaSurfaceSalinity, &
          seaFreezingTemperature, &
          seaSurfaceTemperature, &
@@ -2348,10 +2349,11 @@ contains
 
        call MPAS_pool_get_array(atmosCoupling, "uAirVelocity", uAirVelocity)
        call MPAS_pool_get_array(atmosCoupling, "vAirVelocity", vAirVelocity)
+       call MPAS_pool_get_array(atmosCoupling, "uGust", uGust)
 
        call MPAS_pool_get_array(atmosForcing, "windSpeed", windSpeed)
 
-       windSpeed = sqrt(uAirVelocity**2 + vAirVelocity**2)
+       windSpeed = sqrt(uAirVelocity**2 + vAirVelocity**2 + uGust**2)
 
        !-------------------------------------------------------------
        ! Physics fluxes received from ocean

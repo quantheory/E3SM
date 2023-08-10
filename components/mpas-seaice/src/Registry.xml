@@ -3745,6 +3745,12 @@
 		     units="m s-1"
 		     default_value="5.0"
 		/>
+		<var name="uGust"
+		     type="real"
+		     dimensions="nCells Time"
+		     units="m s-1"
+		     default_value="0.0"
+		/>
 		<var name="atmosReferenceSpeed10m"
 		     type="real"
 		     dimensions="nCells Time"
