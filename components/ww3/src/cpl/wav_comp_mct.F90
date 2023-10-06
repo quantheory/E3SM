@@ -1008,6 +1008,7 @@ CONTAINS
       real, dimension(:), allocatable :: wx, wy 
       real :: xxx
       real :: wlveff, depth
+      real(r8) :: vmag_nogust, ugust ! Scratch variables for gustiness, all m/s
 
       character(len=*),parameter :: subname = '(wav_run_mct)'
       character(15) :: restart_date
@@ -1114,6 +1115,12 @@ CONTAINS
          if (inflags1(3)) then
             WX(gindex)  = x2w0%rattr(index_x2w_sa_u,gindex)
             WY(gindex)  = x2w0%rattr(index_x2w_sa_v,gindex)
+            if (index_x2w_Sa_ugust /= 0) then
+               vmag_nogust = max(1.e-5_r8,sqrt( WX(gindex)**2._r8 + WY(gindex)**2._r8))
+               ugust = x2w0%rattr(index_x2w_sa_ugust,gindex)
+               WX(gindex) = WX(gindex) * ((ugust+vmag_nogust)/vmag_nogust)
+               WY(gindex) = WY(gindex) * ((ugust+vmag_nogust)/vmag_nogust)
+            end if
          endif
 
       enddo

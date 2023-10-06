@@ -9,7 +9,8 @@ module ww3_cpl_indices
   public                               ! By default make data private
 
   integer :: index_x2w_Sa_u     
-  integer :: index_x2w_Sa_v     
+  integer :: index_x2w_Sa_v    
+  integer :: index_x2w_Sa_ugust
   integer :: index_x2w_Sa_tbot  
   integer :: index_x2w_Si_ifrac
   integer :: index_x2w_Si_ithick
@@ -52,6 +53,7 @@ contains
 
     index_x2w_Sa_u       = mct_avect_indexra(x2w,'Sa_u')       ! Zonal wind at lowest level (this should probably be at 10m)
     index_x2w_Sa_v       = mct_avect_indexra(x2w,'Sa_v')       ! Meridional wind at lowest level (see above)
+    index_x2w_Sa_ugust   = mct_avect_indexra(x2w,'Sa_ugust', perrwith='quiet')
     index_x2w_Sa_tbot    = mct_avect_indexra(x2w,'Sa_tbot')    ! Temperature at lowest level
     index_x2w_Si_ifrac   = mct_avect_indexra(x2w,'Si_ifrac')   ! Fractional sea ice coverage 
     index_x2w_Si_ithick  = mct_avect_indexra(x2w,'Si_ithick')  ! Sea ice thickness

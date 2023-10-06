@@ -46,6 +46,7 @@ contains
     integer,parameter                :: nflds=18,nfldv=6
     real (kind=dbl_kind),allocatable :: aflds(:,:,:,:)
     real (kind=dbl_kind)             :: workx, worky
+    real(r8) :: u_nogust, v_nogust, vmag_nogust, ugust ! Scratch variables for gustiness, all m/s
     logical (kind=log_kind)          :: first_call = .true.
     !-----------------------------------------------------
 
@@ -101,11 +102,8 @@ contains
              else
                 aflds(i,j,17,iblk) = x2i(index_x2i_Sa_tau_est,n)
              end if
-             if (index_x2i_Sa_ugust == 0) then
-                aflds(i,j,18,iblk) = 0._dbl_kind
-             else
-                aflds(i,j,18,iblk) = x2i(index_x2i_Sa_ugust,n)
-             end if
+             ! Set to zero because gustiness is applied below.
+             aflds(i,j,18,iblk) = 0._dbl_kind
           enddo    !i
        enddo    !j
 
@@ -159,8 +157,17 @@ contains
              n = n+1
              aflds(i,j, 1,iblk)   = x2i(index_x2i_So_u,n)
              aflds(i,j, 2,iblk)   = x2i(index_x2i_So_v,n)
-             aflds(i,j, 3,iblk)   = x2i(index_x2i_Sa_u,n)
-             aflds(i,j, 4,iblk)   = x2i(index_x2i_Sa_v,n)
+             if (index_x2i_Sa_ugust == 0) then
+                aflds(i,j, 3,iblk)= x2i(index_x2i_Sa_u,n)
+                aflds(i,j, 4,iblk)= x2i(index_x2i_Sa_v,n)
+             else
+                u_nogust          = x2i(index_x2i_Sa_u,n)
+                v_nogust          = x2i(index_x2i_Sa_v,n)
+                ugust             = x2i(index_x2i_Sa_ugust,n)
+                vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+                aflds(i,j, 3,iblk)= u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+                aflds(i,j, 4,iblk)= v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             end if
              aflds(i,j, 5,iblk)   = x2i(index_x2i_So_dhdx,n)
              aflds(i,j, 6,iblk)   = x2i(index_x2i_So_dhdy,n)
           enddo

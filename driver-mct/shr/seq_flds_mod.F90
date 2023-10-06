@@ -692,6 +692,7 @@ contains
        call seq_flds_add(a2x_states,"Sa_ugust")
        call seq_flds_add(x2l_states,"Sa_ugust")
        call seq_flds_add(x2i_states,"Sa_ugust")
+       call seq_flds_add(x2w_states,"Sa_ugust")
        longname = 'Extra wind speed due to gustiness'
        stdname  = ''
        units    = 'm s-1'

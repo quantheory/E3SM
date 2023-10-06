@@ -118,6 +118,7 @@ contains
     real(r8) :: hrise               ! Temporary height rise
     real(r8) :: elvrnge             ! Elevation range between lowest and highest tpu
     real(r8) :: ave_elv
+    real(r8) :: u_nogust, v_nogust, vmag_nogust, ugust ! Scratch variables for gustiness, all m/s
     integer :: elv_flag             ! Elevation flag to trac grids with +ve grid elevation and -ve tpu elevation
 
     integer :: uaflag = 0
@@ -222,13 +223,24 @@ contains
              top_as%thbot(t)   = x2l(index_x2l_Sa_ptem,i)      ! forc_thxy Atm state K
              top_as%pbot(t)    = x2l(index_x2l_Sa_pbot,i)      ! ptcmxy    Atm state Pa
              top_as%qbot(t)    = x2l(index_x2l_Sa_shum,i)      ! forc_qxy  Atm state kg/kg
-             top_as%ubot(t)    = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
-             top_as%vbot(t)    = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
+             u_nogust          = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
+             v_nogust          = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
              top_as%zbot(t)    = x2l(index_x2l_Sa_z,i)         ! zgcmxy    Atm state m
-		 
+             if (index_x2l_Sa_ugust == 0) then
+                ugust          = 0._r8
+             else
+                ugust          = x2l(index_x2l_Sa_ugust,i)     !           Atm state m/s
+             end if
+             vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+             top_as%ubot(t)    = u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             top_as%vbot(t)    = v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             ! Due to the application of ugust above, do not include it here.
+             top_as%ugust(t)   = 0._r8
+
              ! assign the state forcing fields derived from other inputs
              ! Horizontal windspeed (m/s)
              top_as%windbot(t) = sqrt(top_as%ubot(t)**2 + top_as%vbot(t)**2)
+             top_as%windbot(t) = top_as%windbot(t) + top_as%ugust(t)
              ! Relative humidity (percent)
              if (top_as%tbot(t) > SHR_CONST_TKFRZ) then
                 e = esatw(tdc(top_as%tbot(t)))
@@ -254,9 +266,19 @@ contains
           else
              call downscale_atm_state_to_topounit(g, i, t, x2l, lnd2atm_vars, uaflag)
              call downscale_longwave_to_topounit(g, i, t, x2l, lnd2atm_vars, uaflag)
-             top_as%ubot(t)    = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
-             top_as%vbot(t)    = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
+             u_nogust          = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
+             v_nogust          = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
              top_as%zbot(t)    = x2l(index_x2l_Sa_z,i)         ! zgcmxy    Atm state m
+             if (index_x2l_Sa_ugust == 0) then
+                ugust          = 0._r8
+             else
+                ugust          = x2l(index_x2l_Sa_ugust,i)     !           Atm state m/s
+             end if
+             vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+             top_as%ubot(t)    = u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             top_as%vbot(t)    = v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             ! Due to the application of ugust above, do not include it here.
+             top_as%ugust(t)   = 0._r8
           
              sum_qbot_g = sum_qbot_g + top_pp%wtgcell(t)*top_as%qbot(t)
              sum_wtsq_g = sum_wtsq_g + top_pp%wtgcell(t)
@@ -264,6 +286,7 @@ contains
              ! assign the state forcing fields derived from other inputs
              ! Horizontal windspeed (m/s)
              top_as%windbot(t) = sqrt(top_as%ubot(t)**2 + top_as%vbot(t)**2)
+             top_as%windbot(t) = top_as%windbot(t) + top_as%ugust(t)
              ! partial pressure of oxygen (Pa)
              top_as%po2bot(t) = o2_molar_const * top_as%pbot(t)
              ! air density (kg/m**3) - uses a temporary calculation
@@ -339,13 +362,24 @@ contains
        top_as%thbot(t)   = x2l(index_x2l_Sa_ptem,i)      ! forc_thxy Atm state K
        top_as%pbot(t)    = x2l(index_x2l_Sa_pbot,i)      ! ptcmxy    Atm state Pa
        top_as%qbot(t)    = x2l(index_x2l_Sa_shum,i)      ! forc_qxy  Atm state kg/kg
-       top_as%ubot(t)    = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
-       top_as%vbot(t)    = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
+       u_nogust          = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
+       v_nogust          = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
        top_as%zbot(t)    = x2l(index_x2l_Sa_z,i)         ! zgcmxy    Atm state m
-		 
+       if (index_x2l_Sa_ugust == 0) then
+          ugust          = 0._r8
+       else
+          ugust          = x2l(index_x2l_Sa_ugust,i)     !           Atm state m/s
+       end if
+       vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+       top_as%ubot(t)    = u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+       top_as%vbot(t)    = v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+       ! Due to the application of ugust above, do not include it here.
+       top_as%ugust(t)   = 0._r8
+
        ! assign the state forcing fields derived from other inputs
        ! Horizontal windspeed (m/s)
        top_as%windbot(t) = sqrt(top_as%ubot(t)**2 + top_as%vbot(t)**2)
+       top_as%windbot(t) = top_as%windbot(t) + top_as%ugust(t)
        ! Relative humidity (percent)
        if (top_as%tbot(t) > SHR_CONST_TKFRZ) then
           e = esatw(tdc(top_as%tbot(t)))

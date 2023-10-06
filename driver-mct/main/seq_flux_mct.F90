@@ -1010,6 +1010,7 @@ contains
     integer     :: ocn_surface_flux_scheme ! 0: E3SMv1  1: COARE  2: UA
     logical     :: cold_start      ! .true. to initialize internal fields in shr_flux diurnal
     character(len=256) :: fldlist  ! subset of xao fields
+    real(r8) :: u_nogust, v_nogust, vmag_nogust, ugust_scratch ! Scratch variables for gustiness, all m/s
     !
     character(*),parameter :: subName =   '(seq_flux_atmocnexch_mct) '
     !
@@ -1092,15 +1093,23 @@ contains
           io = sMata2o%data%iAttr(ko,n)
           ia = sMata2o%data%iAttr(ka,n)
           zbot(n) = a2x_e%rAttr(index_a2x_Sa_z   ,ia)
-          ubot(n) = a2x_e%rAttr(index_a2x_Sa_u   ,ia)
-          vbot(n) = a2x_e%rAttr(index_a2x_Sa_v   ,ia)
           if (atm_flux_method == 'implicit_stress') then
              wsresp(n) = a2x_e%rAttr(index_a2x_Sa_wsresp,ia)
              tau_est(n) = a2x_e%rAttr(index_a2x_Sa_tau_est,ia)
           end if
           if (atm_gustiness) then
-             ugust_atm(n) = a2x_e%rAttr(index_a2x_Sa_ugust,ia)
+             u_nogust = a2x_e%rAttr(index_a2x_Sa_u   ,ia)
+             v_nogust = a2x_e%rAttr(index_a2x_Sa_v   ,ia)
+             ugust_scratch = a2x_e%rAttr(index_a2x_Sa_ugust,ia)
+             vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+             ubot(n) = u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             vbon(n) = v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+          else
+             ubot(n) = a2x_e%rAttr(index_a2x_Sa_u   ,ia)
+             vbot(n) = a2x_e%rAttr(index_a2x_Sa_v   ,ia)
           end if
+          ! Set to zero because ugust is already applied above.
+          ugust_atm(n) = 0._r8
           thbot(n)= a2x_e%rAttr(index_a2x_Sa_ptem,ia)
           shum(n) = a2x_e%rAttr(index_a2x_Sa_shum,ia)
           shum_16O(n) = a2x_e%rAttr(index_a2x_Sa_shum_16O,ia)
@@ -1327,6 +1336,7 @@ contains
     real(r8)    :: flux_convergence ! convergence criteria for imlicit flux computation
     integer(in) :: flux_max_iteration ! maximum number of iterations for convergence
     logical :: coldair_outbreak_mod !  cold air outbreak adjustment  (Mahrt & Sun 1995,MWR)
+    real(r8) :: u_nogust, v_nogust, vmag_nogust, ugust_scratch ! Scratch variables for gustiness, all m/s
     !
     character(*),parameter :: subName =   '(seq_flux_atmocn_mct) '
     !
@@ -1521,8 +1531,18 @@ contains
                 tau_est(n) = a2x%rAttr(index_a2x_Sa_tau_est,n)
              end if
              if (atm_gustiness) then
-                ugust_atm(n) = a2x%rAttr(index_a2x_Sa_ugust,n)
+                u_nogust = a2x%rAttr(index_a2x_Sa_u   ,n)
+                v_nogust = a2x%rAttr(index_a2x_Sa_v   ,n)
+                ugust_scratch = a2x%rAttr(index_a2x_Sa_ugust,n)
+                vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+                ubot(n) = u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+                vbon(n) = v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+             else
+                ubot(n) = a2x%rAttr(index_a2x_Sa_u   ,n)
+                vbot(n) = a2x%rAttr(index_a2x_Sa_v   ,n)
              end if
+             ! Set to zero because ugust is already applied above.
+             ugust_atm(n) = 0._r8
              thbot(n)= a2x%rAttr(index_a2x_Sa_ptem,n)
              shum(n) = a2x%rAttr(index_a2x_Sa_shum,n)
              if ( index_a2x_Sa_shum_16O /= 0 ) shum_16O(n) = a2x%rAttr(index_a2x_Sa_shum_16O,n)

@@ -39,7 +39,7 @@ contains
     use fileutils        , only: getavu, relavu
     use spmdmod          , only: masterproc, mpicom, iam, npes, MPI_REAL8, MPI_INTEGER, MPI_STATUS_SIZE
     use elm_nlUtilsMod   , only : find_nlgroup_name
-    use FrictionVelocityMod, only: implicit_stress, atm_gustiness
+    use FrictionVelocityMod, only: implicit_stress
     use lnd_disagg_forc
     use lnd_downscale_atm_forcing
     use netcdf
@@ -92,6 +92,7 @@ contains
     real(r8) :: tbot, tempndep(1,1,158), thiscalday, wt1(14), wt2(14), thisdoy
     real(r8) :: site_metdata(14,12)
     real(r8) :: var_month_mean(12)
+    real(r8) :: u_nogust, v_nogust, vmag_nogust, ugust ! Scratch variables for gustiness, all m/s
     !real(r8) :: hdm1(720,360,1), hdm2(720,360,1) 
     !real(r8) :: lnfm1(192,94,2920)
     !real(r8) :: ndep1(144,96,1), ndep2(144,96,1)
@@ -1039,18 +1040,15 @@ contains
          top_as%qbot(topo)    = atm2lnd_vars%forc_q_not_downscaled_grc(g)      ! forc_qxy  Atm state kg/kg
          top_as%ubot(topo)    = atm2lnd_vars%forc_u_grc(g)                     ! forc_uxy  Atm state m/s
          top_as%vbot(topo)    = atm2lnd_vars%forc_v_grc(g)                     ! forc_vxy  Atm state m/s
+         top_as%ugust(topo)   = 0._r8                                          !           Atm state m/s
          if (implicit_stress) then
             top_as%wsresp(topo)  = 0._r8                                       !           Atm state m/s/Pa
             top_as%tau_est(topo) = 0._r8                                       !           Atm state Pa
          end if
-         top_as%ugust(topo) = 0._r8                                            !           Atm state m/s
          top_as%zbot(topo)    = atm2lnd_vars%forc_hgt_grc(g)                   ! zgcmxy    Atm state m
          ! assign the state forcing fields derived from other inputs
          ! Horizontal windspeed (m/s)
          top_as%windbot(topo) = sqrt(top_as%ubot(topo)**2 + top_as%vbot(topo)**2)
-         if (atm_gustiness) then
-            top_as%windbot(topo) = top_as%windbot(topo) + top_as%ugust(topo)
-         end if
          ! Relative humidity (percent)
          if (top_as%tbot(topo) > SHR_CONST_TKFRZ) then
             e = esatw(tdc(top_as%tbot(topo)))
@@ -1118,13 +1116,6 @@ contains
        
        !set the topounit-level atmospheric state and flux forcings
        if (use_atm_downscaling_to_topunit) then
-          if(atm_gustiness) then
-             call endrun("Error: atm_gustiness not yet supported with multiple topounits")
-          end if
-         do topo = grc_pp%topi(g) , grc_pp%topf(g)
-            top_as%ugust(topo) = 0._r8
-         end do
-
          call downscale_atm_forcing_to_topounit(g, i, x2l, lnd2atm_vars)
        else
          do topo = grc_pp%topi(g), grc_pp%topf(g)
@@ -1133,24 +1124,27 @@ contains
            top_as%thbot(topo)   = x2l(index_x2l_Sa_ptem,i)      ! forc_thxy Atm state K
            top_as%pbot(topo)    = x2l(index_x2l_Sa_pbot,i)      ! ptcmxy    Atm state Pa
            top_as%qbot(topo)    = x2l(index_x2l_Sa_shum,i)      ! forc_qxy  Atm state kg/kg
-           top_as%ubot(topo)    = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
-           top_as%vbot(topo)    = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
+           u_nogust             = x2l(index_x2l_Sa_u,i)         ! forc_uxy  Atm state m/s
+           v_nogust             = x2l(index_x2l_Sa_v,i)         ! forc_vxy  Atm state m/s
            top_as%zbot(topo)    = x2l(index_x2l_Sa_z,i)         ! zgcmxy    Atm state m
+           if (index_x2l_Sa_ugust == 0) then
+              ugust             = 0._r8
+           else
+              ugust             = x2l(index_x2l_Sa_ugust,i)     !           Atm state m/s
+           end if
+           vmag_nogust = max(1.e-5_r8,sqrt( u_nogust**2._r8 + v_nogust**2._r8))
+           top_as%ubot(topo)    = u_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+           top_as%vbot(topo)    = v_nogust * ((ugust+vmag_nogust)/vmag_nogust)
+           ! Due to the application of ugust above, do not include it here.
+           top_as%ugust(topo)   = 0._r8
          if (implicit_stress) then
             top_as%wsresp(topo)  = x2l(index_x2l_Sa_wsresp,i) !           Atm state m/s/Pa
             top_as%tau_est(topo) = x2l(index_x2l_Sa_tau_est,i)!           Atm state Pa
          end if
-         if (atm_gustiness) then
-            top_as%ugust(topo)  = x2l(index_x2l_Sa_ugust,i)   !           Atm state m/s
-         else
-            top_as%ugust(topo) = 0._r8
-         end if
            ! assign the state forcing fields derived from other inputs
            ! Horizontal windspeed (m/s)
            top_as%windbot(topo) = sqrt(top_as%ubot(topo)**2 + top_as%vbot(topo)**2)
-         if (atm_gustiness) then
-            top_as%windbot(topo) = top_as%windbot(topo) + top_as%ugust(topo)
-         end if
+           top_as%windbot(topo) = top_as%windbot(topo) + top_as%ugust(topo)
            ! Relative humidity (percent)
            if (top_as%tbot(topo) > SHR_CONST_TKFRZ) then
             e = esatw(tdc(top_as%tbot(topo)))

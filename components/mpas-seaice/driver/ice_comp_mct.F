@@ -1773,7 +1773,11 @@ contains
 
    real (kind=RKIND) :: &
       frazilMassFlux, &
-      frazilMassFluxRev
+      frazilMassFluxRev, &
+      uNoGust, &
+      vNoGust, &
+      vMagNoGust, &
+      uGust
 
    type (block_type), pointer :: block_ptr
 
@@ -2026,8 +2030,17 @@ contains
         longwaveDown(i)                = x2i_i % rAttr(index_x2i_Faxa_lwdn, n)
         rainfallRate(i)                = x2i_i % rAttr(index_x2i_Faxa_rain, n)
         snowfallRate(i)                = x2i_i % rAttr(index_x2i_Faxa_snow, n)
-        uAirVelocity(i)                = x2i_i % rAttr(index_x2i_Sa_u, n)
-        vAirVelocity(i)                = x2i_i % rAttr(index_x2i_Sa_v, n)
+        if (index_x2i_Sa_ugust == 0) then
+           uAirVelocity(i)             = x2i_i % rAttr(index_x2i_Sa_u, n)
+           vAirVelocity(i)             = x2i_i % rAttr(index_x2i_Sa_v, n)
+        else
+           uNoGust                     = x2i_i % rAttr(index_x2i_Sa_u, n)
+           vNoGust                     = x2i_i % rAttr(index_x2i_Sa_v, n)
+           uGust                       = x2i_i % rAttr(index_x2i_Sa_ugust, n)
+           vMagNoGust                  = max(1.e-5_RKIND,sqrt( uNoGust**2._RKIND + vNoGust**2._RKIND))
+           uAirVelocity(i)             = uNoGust * ((uGust + vMagNoGust)/vMagNoGust)
+           vAirVelocity(i)             = vNoGust * ((uGust + vMagNoGust)/vMagNoGust)
+        end if
 
         ! set aerosols, if configured
         if (config_use_aerosols) then
